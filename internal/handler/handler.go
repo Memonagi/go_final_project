@@ -32,6 +32,7 @@ func GetNextDate(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(nextDate))
+
 	if err != nil {
 		http.Error(w, fmt.Errorf("writing tasks data error: %w", err).Error(), http.StatusBadRequest)
 	}
