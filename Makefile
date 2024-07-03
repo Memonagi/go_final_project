@@ -1,5 +1,5 @@
 build:
-	go build -o scheduler-service cmd/scheduler-service/main.go
+	go build -o bin/scheduler-service cmd/scheduler-service/main.go
 
 tidy:
 	go mod tidy
