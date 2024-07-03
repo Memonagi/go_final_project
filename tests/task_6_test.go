@@ -26,7 +26,7 @@ func TestTask(t *testing.T) {
 
 	todo := addTask(t, task)
 
-	body, err := requestJSON("api/task", nil, http.MethodGet)
+	body, err := requestJSON("api/service", nil, http.MethodGet)
 	assert.NoError(t, err)
 	var m map[string]string
 	err = json.Unmarshal(body, &m)
@@ -34,9 +34,9 @@ func TestTask(t *testing.T) {
 
 	e, ok := m["error"]
 	assert.False(t, !ok || len(fmt.Sprint(e)) == 0,
-		"Ожидается ошибка для вызова /api/task")
+		"Ожидается ошибка для вызова /api/service")
 
-	body, err = requestJSON("api/task?id="+todo, nil, http.MethodGet)
+	body, err = requestJSON("api/service?id="+todo, nil, http.MethodGet)
 	assert.NoError(t, err)
 	err = json.Unmarshal(body, &m)
 	assert.NoError(t, err)
@@ -78,7 +78,7 @@ func TestEditTask(t *testing.T) {
 		{id, task{"20240212", "Заголовок", "", "ooops"}},
 	}
 	for _, v := range tbl {
-		m, err := postJSON("api/task", map[string]any{
+		m, err := postJSON("api/service", map[string]any{
 			"id":      v.id,
 			"date":    v.date,
 			"title":   v.title,
@@ -96,7 +96,7 @@ func TestEditTask(t *testing.T) {
 	}
 
 	updateTask := func(newVals map[string]any) {
-		mupd, err := postJSON("api/task", newVals, http.MethodPut)
+		mupd, err := postJSON("api/service", newVals, http.MethodPut)
 		assert.NoError(t, err)
 
 		e, ok := mupd["error"]

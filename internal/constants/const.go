@@ -9,19 +9,11 @@ type Task struct {
 	Repeat  string `json:"repeat"`
 }
 
-// TaskIdResponse структура идентификатора созданной записи
-type TaskIdResponse struct {
-	Id int64 `json:"id"`
-}
-
-// ErrorResponse структура ошибки
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-// TaskResponse структура отображения добавленных задач
-type TaskResponse struct {
-	Tasks []Task `json:"tasks"`
+// Response структура отображения ответа
+type Response struct {
+	Id    int64  `json:"id,omitempty"`
+	Error string `json:"error,omitempty"`
+	Tasks []Task `json:"tasks,omitempty"`
 }
 
 const (

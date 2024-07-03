@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Memonagi/go_final_project/constants"
+	"github.com/Memonagi/go_final_project/internal/constants"
 )
 
 // NextDate функция для определения следующей даты в соответствии с правилом (решено без учета повторения по месяцам)

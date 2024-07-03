@@ -11,7 +11,7 @@ import (
 )
 
 func addTask(t *testing.T, task task) string {
-	ret, err := postJSON("api/task", map[string]any{
+	ret, err := postJSON("api/service", map[string]any{
 		"date":    task.date,
 		"title":   task.title,
 		"comment": task.comment,
