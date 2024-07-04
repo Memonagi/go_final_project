@@ -2,34 +2,35 @@ package service
 
 import (
 	"errors"
-	"github.com/Memonagi/go_final_project/internal/constants"
 	"github.com/Memonagi/go_final_project/internal/database"
 	"github.com/Memonagi/go_final_project/internal/date"
+	"github.com/Memonagi/go_final_project/internal/models"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type Task struct {
-	ID      string `json:"id"`
-	Date    string `json:"date"`
-	Title   string `json:"title"`
-	Comment string `json:"comment"`
-	Repeat  string `json:"repeat"`
-	db      database.DB
+type Service struct {
+	db *database.DB
+}
+
+func New(db *database.DB) *Service {
+	return &Service{
+		db: db,
+	}
 }
 
 // CheckRepeat проверяет корректность указанного правила повторения
-func (t *Task) CheckRepeat() error {
+func (s *Service) CheckRepeat(task models.Task) error {
 
-	if t.Repeat == "" {
+	if task.Repeat == "" {
 		return nil
 	}
-	switch string(t.Repeat[0]) {
+	switch string(task.Repeat[0]) {
 	case "y":
 		return nil
 	case "d":
-		s := strings.Split(t.Repeat, " ")
+		s := strings.Split(task.Repeat, " ")
 		if len(s) != 2 {
 			return errors.New("правило повторения указано в неправильном формате")
 		} else {
@@ -39,7 +40,7 @@ func (t *Task) CheckRepeat() error {
 			}
 		}
 	case "w":
-		s := strings.Split(t.Repeat, " ")
+		s := strings.Split(task.Repeat, " ")
 		if len(s) != 2 {
 			return errors.New("правило повторения указано в неправильном формате")
 		} else {
@@ -58,171 +59,162 @@ func (t *Task) CheckRepeat() error {
 }
 
 // CheckTitle проверяет наличие заголовка
-func (t *Task) CheckTitle() (string, error) {
+func (s *Service) CheckTitle(task models.Task) (string, error) {
 
-	if len(t.Title) == 0 {
+	if len(task.Title) == 0 {
 		return "", errors.New("заголовок задачи не может быть пустым")
 	}
-	return t.Title, nil
+	return task.Title, nil
 }
 
 // CheckDate проверяет корректность указанной даты
-func (t *Task) CheckDate() (string, error) {
+func (s *Service) CheckDate(task models.Task) (string, error) {
 
 	now := time.Now()
-	if t.Date == "" || t.Date == "today" {
-		return now.Format(constants.DateFormat), nil
+	if task.Date == "" || task.Date == "today" {
+		return now.Format(models.DateFormat), nil
 	} else {
-		outDate, err := time.Parse(constants.DateFormat, t.Date)
+		outDate, err := time.Parse(models.DateFormat, task.Date)
 		if err != nil {
 			return "", errors.New("неправильный формат даты")
 		}
 		if outDate.Before(now) {
-			return now.Format(constants.DateFormat), nil
+			return now.Format(models.DateFormat), nil
 		} else {
-			return outDate.Format(constants.DateFormat), nil
+			return outDate.Format(models.DateFormat), nil
 		}
 	}
 }
 
 // AddTask добавляет новую задачу в БД
-func (t *Task) AddTask() (int64, error) {
+func (s *Service) AddTask(task models.Task) (string, error) {
 
-	titleOfTask, err := t.CheckTitle()
+	titleOfTask, err := s.CheckTitle(task)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	t.Title = titleOfTask
+	task.Title = titleOfTask
 
 	now := time.Now()
-	if t.Repeat == "" {
-		dateOfTask, err := t.CheckDate()
+	if task.Repeat == "" {
+		dateOfTask, err := s.CheckDate(task)
 		if err != nil {
-			return 0, err
+			return "", err
 		}
-		t.Date = dateOfTask
+		task.Date = dateOfTask
 	} else {
-		err = t.CheckRepeat()
+		err = s.CheckRepeat(task)
 		if err != nil {
-			return 0, err
+			return "", err
 		}
-		dateOfTask, err := t.CheckDate()
+		dateOfTask, err := s.CheckDate(task)
 		if err != nil {
-			return 0, err
+			return "", err
 		}
-		if dateOfTask == now.Format(constants.DateFormat) {
-			t.Date = dateOfTask
+		if dateOfTask == now.Format(models.DateFormat) {
+			task.Date = dateOfTask
 		} else {
-			nextDate, err := date.NextDate(now, dateOfTask, t.Repeat)
+			nextDate, err := date.NextDate(now, dateOfTask, task.Repeat)
 			if err != nil {
-				return 0, err
+				return "", err
 			}
-			t.Date = nextDate
+			task.Date = nextDate
 		}
 	}
-	task := constants.Task{
-		ID:      t.ID,
-		Date:    t.Date,
-		Title:   t.Title,
-		Comment: t.Comment,
-		Repeat:  t.Repeat,
-	}
-	return t.db.AddTask(task)
+	return s.db.AddTask(task)
 }
 
 // GetAllTasks получает список ближайших задач
-func (t *Task) GetAllTasks() ([]constants.Task, error) {
-	return t.db.GetAllTasks()
+func (s *Service) GetAllTasks() ([]models.Task, error) {
+	return s.db.GetAllTasks()
 }
 
 // GetTaskId получает задачу по ее ID
-func (t *Task) GetTaskId(id string) (constants.Task, error) {
+func (s *Service) GetTaskId(id string) (models.Task, error) {
 
 	if id == "" {
-		return constants.Task{}, nil
+		return models.Task{}, errors.New("не указан идентификатор")
 	}
 
-	var task constants.Task
+	var task models.Task
 
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return constants.Task{}, err
+		return models.Task{}, err
 	}
 
-	return t.db.GetTaskId(int64(idInt), task)
+	return s.db.GetTaskId(int64(idInt), task)
 }
 
 // UpdateTask редактирует задачу
-func (t *Task) UpdateTask() error {
+func (s *Service) UpdateTask(task models.Task) (models.Task, error) {
 
-	titleOfTask, err := t.CheckTitle()
-	if err != nil {
-		return err
+	if task.ID == "" {
+		return models.Task{}, errors.New("не указан ID")
 	}
-	t.Title = titleOfTask
+
+	titleOfTask, err := s.CheckTitle(task)
+	if err != nil {
+		return models.Task{}, err
+	}
+	task.Title = titleOfTask
 
 	now := time.Now()
-	if t.Date == "" {
-		t.Date = now.Format(constants.DateFormat)
+	if task.Date == "" {
+		task.Date = now.Format(models.DateFormat)
 	} else {
-		dateOfTask, err := time.Parse(constants.DateFormat, t.Date)
+		dateOfTask, err := time.Parse(models.DateFormat, task.Date)
 		if err != nil {
-			return err
+			return models.Task{}, err
 		}
 		if dateOfTask.Before(now) {
-			if t.Repeat == "" {
-				t.Date = now.Format(constants.DateFormat)
+			if task.Repeat == "" {
+				task.Date = now.Format(models.DateFormat)
 			} else {
-				nextDate, err := date.NextDate(now, t.Date, t.Repeat)
+				nextDate, err := date.NextDate(now, task.Date, task.Repeat)
 				if err != nil {
-					return err
+					return models.Task{}, err
 				}
-				t.Date = nextDate
+				task.Date = nextDate
 			}
 		}
 	}
 
-	if err := t.CheckRepeat(); err != nil {
-		return err
+	if err := s.CheckRepeat(task); err != nil {
+		return models.Task{}, err
 	}
-	task := constants.Task{
-		ID:      t.ID,
-		Date:    t.Date,
-		Title:   t.Title,
-		Comment: t.Comment,
-		Repeat:  t.Repeat,
-	}
-	return t.db.UpdateTask(task)
+	return s.db.UpdateTask(task)
 }
 
-// DoneTask делает задачу выполненной
-func (t *Task) DoneTask(id string) error {
+// TaskDone делает задачу выполненной
+func (s *Service) TaskDone(id string) error {
 
 	if id == "" {
 		return errors.New("не указан ID")
 	}
 
-	var task constants.Task
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		return err
 	}
 
-	_, err = t.db.GetTaskId(int64(idInt), task)
+	var task models.Task
+
+	task, err = s.db.GetTaskId(int64(idInt), task)
 	if err != nil {
 		return err
 	}
 
-	switch t.Repeat {
+	switch task.Repeat {
 	case "":
-		return t.db.DeleteTaskId(int64(idInt))
+		return s.db.DeleteTaskId(int64(idInt))
 	default:
 		now := time.Now()
-		nextDate, err := date.NextDate(now, t.Date, t.Repeat)
+		nextDate, err := date.NextDate(now, task.Date, task.Repeat)
 		if err != nil {
 			return err
 		}
-		if err = t.db.DoneTask(nextDate, int64(idInt)); err != nil {
+		if err = s.db.TaskDone(nextDate, int64(idInt)); err != nil {
 			return err
 		}
 	}
@@ -230,7 +222,7 @@ func (t *Task) DoneTask(id string) error {
 }
 
 // DeleteTask удаляет задачу
-func (t *Task) DeleteTask(id string) error {
+func (s *Service) DeleteTask(id string) error {
 	if id == "" {
 		return errors.New("не указан ID")
 	}
@@ -239,5 +231,5 @@ func (t *Task) DeleteTask(id string) error {
 	if err != nil {
 		return err
 	}
-	return t.db.DeleteTaskId(int64(idInt))
+	return s.db.DeleteTaskId(int64(idInt))
 }

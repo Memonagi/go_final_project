@@ -2,34 +2,34 @@ package database
 
 import (
 	"database/sql"
-	"github.com/Memonagi/go_final_project/internal/constants"
+	"errors"
+	"github.com/Memonagi/go_final_project/internal/models"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
+	"strconv"
 )
 
 type DB struct {
-	Db *sql.DB
+	db *sql.DB
 }
 
-// CheckDatabase проверяет существование БД
-func (db *DB) CheckDatabase() error {
-	dbFile := os.Getenv("TODO_DBFILE")
-	if dbFile == "" {
-		dbFile = "scheduler.db"
-	}
+// New подключает к БД
+func New(dbFile string) (*DB, error) {
 
 	_, err := os.Stat(dbFile)
 	if os.IsNotExist(err) {
 		file, err := os.Create(dbFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		file.Close()
+		if err := file.Close(); err != nil {
+			return nil, err
+		}
 	}
 
-	db.Db, err = sql.Open("sqlite3", dbFile)
+	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	createTable := `CREATE TABLE IF NOT EXISTS scheduler (
@@ -40,76 +40,49 @@ func (db *DB) CheckDatabase() error {
         repeat   VARCHAR(128)  NOT NULL
     );`
 
-	_, err = db.Db.Exec(createTable)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// NewDatabase подключает к БД
-func (db *DB) NewDatabase() (*DB, error) {
-
-	if err := db.CheckDatabase(); err != nil {
-		return nil, err
-	}
-
-	var err error
-	db.Db, err = sql.Open("sqlite3", "scheduler.db")
+	_, err = db.Exec(createTable)
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return &DB{db}, nil
 }
 
 // CloseDatabase закрывает БД
 func (db *DB) CloseDatabase() error {
-	return db.Db.Close()
+	return db.db.Close()
 }
 
 // AddTask добавляет задачу в БД
-func (db *DB) AddTask(task constants.Task) (int64, error) {
-
-	db, err := db.NewDatabase()
-	if err != nil {
-		return 0, err
-	}
-	defer db.CloseDatabase()
+func (db *DB) AddTask(task models.Task) (string, error) {
 
 	query := "INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)"
-	res, err := db.Db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
+	res, err := db.db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
-	return id, nil
+	return strconv.Itoa(int(id)), nil
 }
 
 // GetAllTasks получает все задачи из БД
-func (db *DB) GetAllTasks() ([]constants.Task, error) {
+func (db *DB) GetAllTasks() ([]models.Task, error) {
 
-	db, err := db.NewDatabase()
-	if err != nil {
-		return nil, err
-	}
-	defer db.CloseDatabase()
-
-	rows, err := db.Db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT ?", constants.Limit)
+	rows, err := db.db.Query("SELECT * FROM scheduler ORDER BY date LIMIT ?", models.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var tasks []constants.Task
+	var tasks []models.Task
 
 	for rows.Next() {
 
-		var taskStruct constants.Task
+		var taskStruct models.Task
 
 		if err = rows.Scan(&taskStruct.ID, &taskStruct.Date, &taskStruct.Title, &taskStruct.Comment, &taskStruct.Repeat); err != nil {
 			return nil, err
@@ -119,56 +92,38 @@ func (db *DB) GetAllTasks() ([]constants.Task, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	if tasks == nil {
-		tasks = []constants.Task{}
-	}
 	return tasks, nil
 }
 
 // GetTaskId получает задачу из БД по ее ID
-func (db *DB) GetTaskId(id int64, task constants.Task) (constants.Task, error) {
-	db, err := db.NewDatabase()
-	if err != nil {
-		return constants.Task{}, err
-	}
-	defer db.CloseDatabase()
+func (db *DB) GetTaskId(id int64, task models.Task) (models.Task, error) {
 
 	query := "SELECT * FROM scheduler WHERE id = ?"
 
-	if err := db.Db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
-		return constants.Task{}, err
+	if err := db.db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+		return models.Task{}, err
 	}
 	return task, nil
 }
 
 // UpdateTask редактирует задачу в БД
-func (db *DB) UpdateTask(task constants.Task) error {
-	db, err := db.NewDatabase()
-	if err != nil {
-		return err
-	}
-	defer db.CloseDatabase()
+func (db *DB) UpdateTask(task models.Task) (models.Task, error) {
 
-	row, err := db.Db.Exec("UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?", task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+	row, err := db.db.Exec("UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?", task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 	if err != nil {
-		return err
+		return models.Task{}, err
 	}
 	checkRow, err := row.RowsAffected()
 	if err != nil || checkRow == 0 {
-		return err
+		return models.Task{}, errors.New("ошибка обновления задачи в базе данных")
 	}
-	return nil
+	return task, nil
 }
 
-// DoneTask выполняет задачу в БД
-func (db *DB) DoneTask(nextDate string, id int64) error {
-	db, err := db.NewDatabase()
-	if err != nil {
-		return err
-	}
-	defer db.CloseDatabase()
+// TaskDone выполняет задачу в БД
+func (db *DB) TaskDone(nextDate string, id int64) error {
 
-	_, err = db.Db.Exec("UPDATE scheduler SET date = ? WHERE id = ?", nextDate, id)
+	_, err := db.db.Exec("UPDATE scheduler SET date = ? WHERE id = ?", nextDate, id)
 	if err != nil {
 		return err
 	}
@@ -177,13 +132,8 @@ func (db *DB) DoneTask(nextDate string, id int64) error {
 
 // DeleteTaskId удаляет задачу из БД
 func (db *DB) DeleteTaskId(id int64) error {
-	db, err := db.NewDatabase()
-	if err != nil {
-		return err
-	}
-	defer db.CloseDatabase()
 
-	row, err := db.Db.Exec("DELETE FROM scheduler WHERE id = ?", id)
+	row, err := db.db.Exec("DELETE FROM scheduler WHERE id = ?", id)
 	if err != nil {
 		return err
 	}

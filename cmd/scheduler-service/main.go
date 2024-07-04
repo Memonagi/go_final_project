@@ -1,53 +1,38 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
+	"github.com/Memonagi/go_final_project/internal/database"
+	"github.com/Memonagi/go_final_project/internal/handler"
+	"github.com/Memonagi/go_final_project/internal/service"
 	"os"
 	"strconv"
 
-	"github.com/Memonagi/go_final_project/internal/handler"
 	"github.com/Memonagi/go_final_project/tests"
-	"github.com/go-chi/chi/v5"
-)
-
-const (
-	webDir = "./web"
 )
 
 func main() {
-	// получение значения переменной окружения
-	port := os.Getenv("TODO_PORT")
-	if port == "" {
-		port = strconv.Itoa(tests.Port)
+
+	port, _ := strconv.Atoi(os.Getenv("TODO_PORT"))
+	if port == 0 {
+		port = tests.Port
 	}
 
-	// создание маршрутизатора и обработка запросов
-	r := chi.NewRouter()
-	r.Handle("/*", http.FileServer(http.Dir(webDir)))
+	dbFile := os.Getenv("TODO_DBFILE")
+	if dbFile == "" {
+		dbFile = "scheduler.db"
+	}
 
-	// создание экземпляра Handler
-	h := &handler.Handler{}
+	db, err := database.New(dbFile)
+	if err != nil {
+		panic(err)
+	}
+	defer db.CloseDatabase()
 
-	// вычисление следующей даты
-	r.Get("/api/nextdate", h.GetNextDate)
-	// добавление задачи в БД
-	r.MethodFunc(http.MethodPost, "/api/service", h.AddTask)
-	// получение списка задач
-	r.MethodFunc(http.MethodGet, "/api/tasks", h.GetAllTasks)
-	// получение задачи по ее идентификатору
-	r.MethodFunc(http.MethodGet, "/api/service", h.GetTaskId)
-	// редактирование задачи
-	r.MethodFunc(http.MethodPut, "/api/service", h.UpdateTaskId)
-	// выполнение задачи
-	r.MethodFunc(http.MethodPost, "/api/service/done", h.TaskDone)
-	// удаление задачи
-	r.MethodFunc(http.MethodDelete, "/api/service", h.DeleteTask)
+	service := service.New(db)
 
-	// запуск сервера
-	log.Printf("запуск веб-сервера на порту %s", port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), r); err != nil {
-		fmt.Println(err)
+	server := handler.New(port, service)
+
+	if err := server.Run(); err != nil {
+		panic(err)
 	}
 }

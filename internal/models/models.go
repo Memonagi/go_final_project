@@ -1,4 +1,4 @@
-package constants
+package models
 
 // Task структура задач
 type Task struct {
@@ -11,7 +11,7 @@ type Task struct {
 
 // Response структура отображения ответа
 type Response struct {
-	Id    int64  `json:"id,omitempty"`
+	Id    string `json:"id,omitempty"`
 	Error string `json:"error,omitempty"`
 	Tasks []Task `json:"tasks,omitempty"`
 }
@@ -21,6 +21,8 @@ const (
 	DateFormat = "20060102"
 	// Limit лимит для отображения задач
 	Limit = 50
+
+	WebDir = "./web"
 )
 
 // WeekMap мапа индексов дней недели

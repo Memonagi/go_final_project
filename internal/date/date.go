@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Memonagi/go_final_project/internal/constants"
+	"github.com/Memonagi/go_final_project/internal/models"
 )
 
 // NextDate функция для определения следующей даты в соответствии с правилом (решено без учета повторения по месяцам)
@@ -15,7 +15,7 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 		return "", errors.New("неверный формат правила")
 	}
 
-	date, err := time.Parse(constants.DateFormat, dateString)
+	date, err := time.Parse(models.DateFormat, dateString)
 	if err != nil {
 		return "", errors.New("неверный формат даты")
 	}
@@ -38,7 +38,7 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 				break
 			}
 		}
-		return date.Format(constants.DateFormat), nil
+		return date.Format(models.DateFormat), nil
 	case "y":
 		if len(repeatSlice) != 1 {
 			return "", errors.New("неверный формат правила")
@@ -49,7 +49,7 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 				break
 			}
 		}
-		return date.Format(constants.DateFormat), nil
+		return date.Format(models.DateFormat), nil
 	case "w":
 		var week []int
 		if len(repeatSlice) != 2 {
@@ -69,10 +69,10 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 			}
 		}
 		date = date.AddDate(0, 0, 1)
-		for _, ok := constants.WeekMap[int(date.Weekday())]; ok; _, ok = constants.WeekMap[int(date.Weekday())] {
+		for _, ok := models.WeekMap[int(date.Weekday())]; ok; _, ok = models.WeekMap[int(date.Weekday())] {
 			for _, e := range week {
 				if date.Weekday() == time.Weekday(e) && date.After(now) && !date.Equal(now) {
-					return date.Format(constants.DateFormat), nil
+					return date.Format(models.DateFormat), nil
 				}
 			}
 			date = date.AddDate(0, 0, 1)
@@ -111,5 +111,5 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 		return "", errors.New("неверный формат правила")
 	}
 
-	return date.Format(constants.DateFormat), nil
+	return date.Format(models.DateFormat), nil
 }
