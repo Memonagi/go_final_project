@@ -13,7 +13,7 @@ type Task struct {
 type Response struct {
 	Id    string `json:"id,omitempty"`
 	Error string `json:"error,omitempty"`
-	Tasks []Task `json:"tasks,omitempty"`
+	Tasks []Task `json:"tasks"`
 }
 
 const (

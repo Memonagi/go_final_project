@@ -92,6 +92,9 @@ func (db *DB) GetAllTasks() ([]models.Task, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	if len(tasks) == 0 {
+		return []models.Task{}, nil
+	}
 	return tasks, nil
 }
 
