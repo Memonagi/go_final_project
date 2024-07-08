@@ -10,3 +10,6 @@ fmt:
 
 lint: tidy fmt build
 	golangci-lint run
+
+build-docker:
+	docker build -t scheduler-service:latest .

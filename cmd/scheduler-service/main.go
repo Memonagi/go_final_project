@@ -1,20 +1,27 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+
 	"github.com/Memonagi/go_final_project/internal/database"
 	"github.com/Memonagi/go_final_project/internal/handler"
 	"github.com/Memonagi/go_final_project/internal/service"
-	"os"
-	"strconv"
-
-	"github.com/Memonagi/go_final_project/tests"
+	"github.com/sirupsen/logrus"
 )
 
+const defaultPort = 7540
+
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
+	defer cancel()
 
 	port, _ := strconv.Atoi(os.Getenv("TODO_PORT"))
 	if port == 0 {
-		port = tests.Port
+		port = defaultPort
 	}
 
 	dbFile := os.Getenv("TODO_DBFILE")
@@ -22,17 +29,21 @@ func main() {
 		dbFile = "scheduler.db"
 	}
 
-	db, err := database.New(dbFile)
+	db, err := database.New(ctx, dbFile)
 	if err != nil {
-		panic(err)
+		logrus.Panic("ошибка подключения к БД")
 	}
-	defer db.CloseDatabase()
+	defer func() {
+		if err := db.CloseDatabase(); err != nil {
+			logrus.Warn("ошибка закрытия БД")
+		}
+	}()
 
-	service := service.New(db)
+	svc := service.New(db)
 
-	server := handler.New(port, service)
+	server := handler.New(port, svc)
 
-	if err := server.Run(); err != nil {
-		panic(err)
+	if err := server.Run(ctx); err != nil {
+		logrus.Panic("ошибка запуска сервера")
 	}
 }

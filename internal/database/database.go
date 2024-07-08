@@ -1,12 +1,14 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"errors"
-	"github.com/Memonagi/go_final_project/internal/models"
-	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"strconv"
+
+	"github.com/Memonagi/go_final_project/internal/models"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type DB struct {
@@ -14,8 +16,7 @@ type DB struct {
 }
 
 // New подключает к БД
-func New(dbFile string) (*DB, error) {
-
+func New(ctx context.Context, dbFile string) (*DB, error) {
 	_, err := os.Stat(dbFile)
 	if os.IsNotExist(err) {
 		file, err := os.Create(dbFile)
@@ -40,7 +41,7 @@ func New(dbFile string) (*DB, error) {
         repeat   VARCHAR(128)  NOT NULL
     );`
 
-	_, err = db.Exec(createTable)
+	_, err = db.ExecContext(ctx, createTable)
 	if err != nil {
 		return nil, err
 	}
@@ -53,26 +54,24 @@ func (db *DB) CloseDatabase() error {
 }
 
 // AddTask добавляет задачу в БД
-func (db *DB) AddTask(task models.Task) (string, error) {
-
+func (db *DB) AddTask(ctx context.Context, task models.Task) (string, error) {
 	query := "INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)"
-	res, err := db.db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
+	res, err := db.db.ExecContext(ctx, query, task.Date, task.Title, task.Comment, task.Repeat)
 	if err != nil {
-		return "", err
+		return "", errors.New("ошибка добавления задачи в БД")
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return "", err
+		return "", errors.New("ошибка получения ID добавленной задачи")
 	}
 
 	return strconv.Itoa(int(id)), nil
 }
 
 // GetAllTasks получает все задачи из БД
-func (db *DB) GetAllTasks() ([]models.Task, error) {
-
-	rows, err := db.db.Query("SELECT * FROM scheduler ORDER BY date LIMIT ?", models.Limit)
+func (db *DB) GetAllTasks(ctx context.Context) ([]models.Task, error) {
+	rows, err := db.db.QueryContext(ctx, "SELECT * FROM scheduler ORDER BY date LIMIT ?", models.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -99,20 +98,18 @@ func (db *DB) GetAllTasks() ([]models.Task, error) {
 }
 
 // GetTaskId получает задачу из БД по ее ID
-func (db *DB) GetTaskId(id int64, task models.Task) (models.Task, error) {
-
+func (db *DB) GetTaskId(ctx context.Context, id int64, task models.Task) (models.Task, error) {
 	query := "SELECT * FROM scheduler WHERE id = ?"
 
-	if err := db.db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+	if err := db.db.QueryRowContext(ctx, query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
 		return models.Task{}, err
 	}
 	return task, nil
 }
 
 // UpdateTask редактирует задачу в БД
-func (db *DB) UpdateTask(task models.Task) (models.Task, error) {
-
-	row, err := db.db.Exec("UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?", task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+func (db *DB) UpdateTask(ctx context.Context, task models.Task) (models.Task, error) {
+	row, err := db.db.ExecContext(ctx, "UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?", task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 	if err != nil {
 		return models.Task{}, err
 	}
@@ -124,9 +121,8 @@ func (db *DB) UpdateTask(task models.Task) (models.Task, error) {
 }
 
 // TaskDone выполняет задачу в БД
-func (db *DB) TaskDone(nextDate string, id int64) error {
-
-	_, err := db.db.Exec("UPDATE scheduler SET date = ? WHERE id = ?", nextDate, id)
+func (db *DB) TaskDone(ctx context.Context, nextDate string, id int64) error {
+	_, err := db.db.ExecContext(ctx, "UPDATE scheduler SET date = ? WHERE id = ?", nextDate, id)
 	if err != nil {
 		return err
 	}
@@ -134,9 +130,8 @@ func (db *DB) TaskDone(nextDate string, id int64) error {
 }
 
 // DeleteTaskId удаляет задачу из БД
-func (db *DB) DeleteTaskId(id int64) error {
-
-	row, err := db.db.Exec("DELETE FROM scheduler WHERE id = ?", id)
+func (db *DB) DeleteTaskId(ctx context.Context, id int64) error {
+	row, err := db.db.ExecContext(ctx, "DELETE FROM scheduler WHERE id = ?", id)
 	if err != nil {
 		return err
 	}

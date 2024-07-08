@@ -77,36 +77,6 @@ func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 			}
 			date = date.AddDate(0, 0, 1)
 		}
-		/*
-			case "m":
-				var dayOfMonth, month []int
-				var newDate time.Time
-				switch len(repeatSlice) {
-				case 2:
-					mSliceDay := strings.Split(repeatSlice[1], ",")
-					for _, e := range mSliceDay {
-						mDay, err := strconv.Atoi(e)
-						if err != nil || mDay < -2 || mDay > 31 {
-							return "", errors.New("указано неверное количество дней")
-						}
-						dayOfMonth = append(dayOfMonth, mDay)
-					}
-					for _, e := range dayOfMonth {
-						switch e {
-						case -1:
-
-						case -2:
-
-						default:
-
-						}
-					}
-				case 3:
-
-				default:
-					return "", errors.New("неверный формат правила")
-				}
-		*/
 	default:
 		return "", errors.New("неверный формат правила")
 	}

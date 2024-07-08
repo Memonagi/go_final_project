@@ -17,12 +17,9 @@ type Response struct {
 }
 
 const (
-	// DateFormat формат даты
 	DateFormat = "20060102"
-	// Limit лимит для отображения задач
-	Limit = 50
-
-	WebDir = "./web"
+	Limit      = 50
+	WebDir     = "./web"
 )
 
 // WeekMap мапа индексов дней недели

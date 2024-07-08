@@ -1,13 +1,15 @@
 package service
 
 import (
+	"context"
 	"errors"
-	"github.com/Memonagi/go_final_project/internal/database"
-	"github.com/Memonagi/go_final_project/internal/date"
-	"github.com/Memonagi/go_final_project/internal/models"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Memonagi/go_final_project/internal/database"
+	"github.com/Memonagi/go_final_project/internal/date"
+	"github.com/Memonagi/go_final_project/internal/models"
 )
 
 type Service struct {
@@ -22,7 +24,6 @@ func New(db *database.DB) *Service {
 
 // CheckRepeat проверяет корректность указанного правила повторения
 func (s *Service) CheckRepeat(task models.Task) error {
-
 	if task.Repeat == "" {
 		return nil
 	}
@@ -60,7 +61,6 @@ func (s *Service) CheckRepeat(task models.Task) error {
 
 // CheckTitle проверяет наличие заголовка
 func (s *Service) CheckTitle(task models.Task) (string, error) {
-
 	if len(task.Title) == 0 {
 		return "", errors.New("заголовок задачи не может быть пустым")
 	}
@@ -69,7 +69,6 @@ func (s *Service) CheckTitle(task models.Task) (string, error) {
 
 // CheckDate проверяет корректность указанной даты
 func (s *Service) CheckDate(task models.Task) (string, error) {
-
 	now := time.Now()
 	if task.Date == "" || task.Date == "today" {
 		return now.Format(models.DateFormat), nil
@@ -87,8 +86,7 @@ func (s *Service) CheckDate(task models.Task) (string, error) {
 }
 
 // AddTask добавляет новую задачу в БД
-func (s *Service) AddTask(task models.Task) (string, error) {
-
+func (s *Service) AddTask(ctx context.Context, task models.Task) (string, error) {
 	titleOfTask, err := s.CheckTitle(task)
 	if err != nil {
 		return "", err
@@ -121,17 +119,16 @@ func (s *Service) AddTask(task models.Task) (string, error) {
 			task.Date = nextDate
 		}
 	}
-	return s.db.AddTask(task)
+	return s.db.AddTask(ctx, task)
 }
 
 // GetAllTasks получает список ближайших задач
-func (s *Service) GetAllTasks() ([]models.Task, error) {
-	return s.db.GetAllTasks()
+func (s *Service) GetAllTasks(ctx context.Context) ([]models.Task, error) {
+	return s.db.GetAllTasks(ctx)
 }
 
 // GetTaskId получает задачу по ее ID
-func (s *Service) GetTaskId(id string) (models.Task, error) {
-
+func (s *Service) GetTaskId(ctx context.Context, id string) (models.Task, error) {
 	if id == "" {
 		return models.Task{}, errors.New("не указан идентификатор")
 	}
@@ -143,12 +140,11 @@ func (s *Service) GetTaskId(id string) (models.Task, error) {
 		return models.Task{}, err
 	}
 
-	return s.db.GetTaskId(int64(idInt), task)
+	return s.db.GetTaskId(ctx, int64(idInt), task)
 }
 
 // UpdateTask редактирует задачу
-func (s *Service) UpdateTask(task models.Task) (models.Task, error) {
-
+func (s *Service) UpdateTask(ctx context.Context, task models.Task) (models.Task, error) {
 	if task.ID == "" {
 		return models.Task{}, errors.New("не указан ID")
 	}
@@ -183,12 +179,11 @@ func (s *Service) UpdateTask(task models.Task) (models.Task, error) {
 	if err := s.CheckRepeat(task); err != nil {
 		return models.Task{}, err
 	}
-	return s.db.UpdateTask(task)
+	return s.db.UpdateTask(ctx, task)
 }
 
 // TaskDone делает задачу выполненной
-func (s *Service) TaskDone(id string) error {
-
+func (s *Service) TaskDone(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("не указан ID")
 	}
@@ -200,21 +195,21 @@ func (s *Service) TaskDone(id string) error {
 
 	var task models.Task
 
-	task, err = s.db.GetTaskId(int64(idInt), task)
+	task, err = s.db.GetTaskId(ctx, int64(idInt), task)
 	if err != nil {
 		return err
 	}
 
 	switch task.Repeat {
 	case "":
-		return s.db.DeleteTaskId(int64(idInt))
+		return s.db.DeleteTaskId(ctx, int64(idInt))
 	default:
 		now := time.Now()
 		nextDate, err := date.NextDate(now, task.Date, task.Repeat)
 		if err != nil {
 			return err
 		}
-		if err = s.db.TaskDone(nextDate, int64(idInt)); err != nil {
+		if err = s.db.TaskDone(ctx, nextDate, int64(idInt)); err != nil {
 			return err
 		}
 	}
@@ -222,7 +217,7 @@ func (s *Service) TaskDone(id string) error {
 }
 
 // DeleteTask удаляет задачу
-func (s *Service) DeleteTask(id string) error {
+func (s *Service) DeleteTask(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("не указан ID")
 	}
@@ -231,5 +226,5 @@ func (s *Service) DeleteTask(id string) error {
 	if err != nil {
 		return err
 	}
-	return s.db.DeleteTaskId(int64(idInt))
+	return s.db.DeleteTaskId(ctx, int64(idInt))
 }
