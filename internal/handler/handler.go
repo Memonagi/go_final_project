@@ -65,13 +65,13 @@ func (h *Handler) Run(ctx context.Context) error {
 		defer cancel()
 
 		if err := h.server.Shutdown(ctxGf); err != nil {
-			logrus.Warn("ошибка плавного закрытия сервера")
+			logrus.Warnf("ошибка плавного закрытия сервера: %v", err)
 			return
 		}
 	}()
 
 	if err := h.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("ошибка запуска сервера")
+		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func (h *Handler) getNextDate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(nextDate))
 	if err != nil {
-		logrus.Warn("ошибка записи следующей даты")
+		logrus.Warnf("ошибка записи следующей даты: %v", err)
 		return
 	}
 }
@@ -134,7 +134,7 @@ func (h *Handler) addTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(response); err != nil {
-		logrus.Warn("ошибка сериализации JSON")
+		logrus.Warnf("ошибка сериализации JSON: %v", err)
 		return
 	}
 }
@@ -152,7 +152,7 @@ func (h *Handler) getAllTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(response); err != nil {
-		logrus.Warn("ошибка сериализации JSON")
+		logrus.Warnf("ошибка сериализации JSON: %v", err)
 		return
 	}
 }
@@ -170,7 +170,7 @@ func (h *Handler) getTaskId(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(taskStruct); err != nil {
-		logrus.Warn("ошибка сериализации JSON")
+		logrus.Warnf("ошибка сериализации JSON: %v", err)
 		return
 	}
 }
@@ -192,7 +192,7 @@ func (h *Handler) updateTaskId(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(updateTask); err != nil {
-		logrus.Warn("ошибка сериализации JSON")
+		logrus.Warnf("ошибка сериализации JSON: %v", err)
 		return
 	}
 }
@@ -211,7 +211,7 @@ func (h *Handler) taskDone(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logrus.Warn("ошибка сериализации JSON")
+		logrus.Warnf("ошибка сериализации JSON: %v", err)
 		return
 	}
 }
@@ -229,7 +229,7 @@ func (h *Handler) deleteTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logrus.Warn("ошибка сериализации JSON")
+		logrus.Warnf("ошибка сериализации JSON: %v", err)
 		return
 	}
 }

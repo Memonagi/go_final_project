@@ -31,11 +31,11 @@ func main() {
 
 	db, err := database.New(ctx, dbFile)
 	if err != nil {
-		logrus.Panic("ошибка подключения к БД")
+		logrus.Panicf("ошибка подключения к БД: %v", err)
 	}
 	defer func() {
 		if err := db.CloseDatabase(); err != nil {
-			logrus.Warn("ошибка закрытия БД")
+			logrus.Warnf("ошибка закрытия БД: %v", err)
 		}
 	}()
 
@@ -44,6 +44,6 @@ func main() {
 	server := handler.New(port, svc)
 
 	if err := server.Run(ctx); err != nil {
-		logrus.Panic("ошибка запуска сервера")
+		logrus.Panicf("ошибка запуска сервера: %v", err)
 	}
 }

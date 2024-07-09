@@ -1,5 +1,5 @@
 build:
-	go build -o bin/scheduler-service cmd/scheduler-service/main.go
+	 CGO_ENABLED=1 go build -o bin/scheduler-service cmd/scheduler-service/main.go
 
 tidy:
 	go mod tidy
@@ -12,4 +12,4 @@ lint: tidy fmt build
 	golangci-lint run
 
 build-docker:
-	docker build -t scheduler-service:latest .
+	docker build -t scheduler-service:v1 .

@@ -4,12 +4,13 @@ COPY ../.. /src
 
 WORKDIR /src
 
-
-RUN CGO_ENABLED=0 GOOS=linux go build -o bin/scheduler-service cmd/scheduler-service/main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -o bin/scheduler-service cmd/scheduler-service/main.go
 
 FROM debian:stable-slim
 
 COPY --from=builder /src/bin/scheduler-service /app/bin/scheduler-service
+COPY --from=builder /src/scheduler.db /app/scheduler.db
+COPY --from=builder /src/web/. /app/web/.
 
 WORKDIR /app
 
