@@ -1,5 +1,5 @@
 linters-settings:
-forbidigo:
+  forbidigo:
     forbid:
       - .*\.Fatal.*
       - fmt\.Print.*

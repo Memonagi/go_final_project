@@ -12,4 +12,4 @@ lint: tidy fmt build
 	golangci-lint run
 
 build-docker:
-	docker build -t scheduler-service:v1 .
+	docker build --tag scheduler-service:v1 .
