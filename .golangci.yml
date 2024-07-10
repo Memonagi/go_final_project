@@ -4,6 +4,16 @@ linters-settings:
       - .*\.Fatal.*
       - fmt\.Print.*
 
+issues:
+  exclude-rules:
+    - path: _tests/settings
+      linters:
+        - errcheck
+        - dupl
+        - gocyclo
+        - gosec
+        - scopelint
+
 linters:
   enable-all: true
 

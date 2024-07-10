@@ -20,11 +20,13 @@ func main() {
 	defer cancel()
 
 	port, _ := strconv.Atoi(os.Getenv("TODO_PORT"))
+
 	if port == 0 {
 		port = defaultPort
 	}
 
 	dbFile := os.Getenv("TODO_DBFILE")
+
 	if dbFile == "" {
 		dbFile = "scheduler.db"
 	}
@@ -33,6 +35,7 @@ func main() {
 	if err != nil {
 		logrus.Panicf("ошибка подключения к БД: %v", err)
 	}
+
 	defer func() {
 		if err := db.CloseDatabase(); err != nil {
 			logrus.Warnf("ошибка закрытия БД: %v", err)
