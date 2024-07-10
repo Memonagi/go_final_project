@@ -10,7 +10,7 @@ import (
 )
 
 func notFoundTask(t *testing.T, id string) {
-	body, err := requestJSON("api/service?id="+id, nil, http.MethodGet)
+	body, err := requestJSON("api/task?id="+id, nil, http.MethodGet)
 	assert.NoError(t, err)
 	var m map[string]any
 	err = json.Unmarshal(body, &m)
@@ -29,18 +29,18 @@ func TestDone(t *testing.T) {
 		title: "Свести баланс",
 	})
 
-	ret, err := postJSON("api/service/done?id="+id, nil, http.MethodPost)
+	ret, err := postJSON("api/task/done?id="+id, nil, http.MethodPost)
 	assert.NoError(t, err)
 	assert.Empty(t, ret)
 	notFoundTask(t, id)
 
 	id = addTask(t, task{
-		title:  "Проверить работу /api/service/done",
+		title:  "Проверить работу /api/task/done",
 		repeat: "d 3",
 	})
 
 	for i := 0; i < 3; i++ {
-		ret, err := postJSON("api/service/done?id="+id, nil, http.MethodPost)
+		ret, err := postJSON("api/task/done?id="+id, nil, http.MethodPost)
 		assert.NoError(t, err)
 		assert.Empty(t, ret)
 
@@ -60,16 +60,16 @@ func TestDelTask(t *testing.T) {
 		title:  "Временная задача",
 		repeat: "d 3",
 	})
-	ret, err := postJSON("api/service?id="+id, nil, http.MethodDelete)
+	ret, err := postJSON("api/task?id="+id, nil, http.MethodDelete)
 	assert.NoError(t, err)
 	assert.Empty(t, ret)
 
 	notFoundTask(t, id)
 
-	ret, err = postJSON("api/service", nil, http.MethodDelete)
+	ret, err = postJSON("api/task", nil, http.MethodDelete)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ret)
-	ret, err = postJSON("api/service?id=wjhgese", nil, http.MethodDelete)
+	ret, err = postJSON("api/task?id=wjhgese", nil, http.MethodDelete)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ret)
 }

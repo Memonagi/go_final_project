@@ -93,7 +93,7 @@ func TestAddTask(t *testing.T) {
 		{"20240212", "Заголовок", "", "ooops"},
 	}
 	for _, v := range tbl {
-		m, err := postJSON("api/service", map[string]any{
+		m, err := postJSON("api/task", map[string]any{
 			"date":    v.date,
 			"title":   v.title,
 			"comment": v.comment,
@@ -114,7 +114,7 @@ func TestAddTask(t *testing.T) {
 			if today {
 				v.date = now.Format(`20060102`)
 			}
-			m, err := postJSON("api/service", map[string]any{
+			m, err := postJSON("api/task", map[string]any{
 				"date":    v.date,
 				"title":   v.title,
 				"comment": v.comment,

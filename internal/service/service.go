@@ -132,16 +132,32 @@ func (s *Service) AddTask(ctx context.Context, task models.Task) (string, error)
 
 	now := time.Now()
 
+	dateOfTask, err := s.addTaskHelper(task, now)
+	if err != nil {
+		return "", err
+	}
+
+	task.Date = dateOfTask
+
+	taskID, err := s.db.AddTask(ctx, task)
+	if err != nil {
+		return "", fmt.Errorf("ошибка добавления задачи: %w", err)
+	}
+
+	return taskID, nil
+}
+
+func (s *Service) addTaskHelper(task models.Task, now time.Time) (string, error) {
 	if task.Repeat == "" {
 		dateOfTask, err := s.checkDate(task)
 		if err != nil {
 			return "", err
 		}
 
-		task.Date = dateOfTask
+		return dateOfTask, nil
 	}
 
-	err = s.checkRepeat(task)
+	err := s.checkRepeat(task)
 	if err != nil {
 		return "", err
 	}
@@ -153,21 +169,15 @@ func (s *Service) AddTask(ctx context.Context, task models.Task) (string, error)
 
 	if dateOfTask == now.Format(models.DateFormat) {
 		task.Date = dateOfTask
+	} else {
+		nextDate, err := date.NextDate(now, dateOfTask, task.Repeat)
+		if err != nil {
+			return "", fmt.Errorf("ошибка вычисления следующей даты: %w", err)
+		}
+		task.Date = nextDate
 	}
 
-	nextDate, err := date.NextDate(now, dateOfTask, task.Repeat)
-	if err != nil {
-		return "", fmt.Errorf("ошибка вычисления следующей даты: %w", err)
-	}
-
-	task.Date = nextDate
-
-	id, err := s.db.AddTask(ctx, task)
-	if err != nil {
-		return "", fmt.Errorf("ошибка добавления задачи: %w", err)
-	}
-
-	return id, nil
+	return task.Date, nil
 }
 
 // GetAllTasks получает список ближайших задач.
@@ -195,7 +205,7 @@ func (s *Service) GetTaskID(ctx context.Context, id string) (models.Task, error)
 
 	taskID, err := s.db.GetTaskID(ctx, int64(idInt), task)
 	if err != nil {
-		return models.Task{}, fmt.Errorf("ошибка получения задачи: %w", err)
+		return models.Task{}, fmt.Errorf("ошибка получения задачи из списка: %w", err)
 	}
 
 	return taskID, nil
@@ -265,7 +275,7 @@ func (s *Service) TaskDone(ctx context.Context, id string) error {
 
 	task, err = s.db.GetTaskID(ctx, int64(idInt), task)
 	if err != nil {
-		return fmt.Errorf("ошибка получения списка задач: %w", err)
+		return fmt.Errorf("ошибка получения задачи из списка: %w", err)
 	}
 
 	switch task.Repeat {

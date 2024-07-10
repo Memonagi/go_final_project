@@ -13,3 +13,6 @@ lint: tidy fmt build
 
 build-docker:
 	docker build --tag scheduler-service:v1 .
+
+tests:
+	go test ./tests

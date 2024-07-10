@@ -86,10 +86,9 @@ func (h *Handler) Run(ctx context.Context) error {
 
 // errorResponse возвращает ошибку в формате {"error":"текст ошибки"}.
 func errorResponse(w http.ResponseWriter, errorText string, err error) {
+	//nolint:exhaustivestruct
 	errorResponse := models.Response{
-		ID:    "",
 		Error: fmt.Errorf("%s: %w", errorText, err).Error(),
-		Tasks: []models.Task{},
 	}
 
 	response, err := json.Marshal(errorResponse)
@@ -105,28 +104,8 @@ func errorResponse(w http.ResponseWriter, errorText string, err error) {
 	}
 }
 
-// okResponse возвращает ответ в форматах {"id":""}, {"tasks":[]}.
-func okResponse(w http.ResponseWriter, status int, response models.Response) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logrus.Warnf("ошибка сериализации JSON: %v", err)
-	}
-}
-
-// okTaskResponse возвращает ответ в формате {"id": "", "date": "", "title": "", "comment": "", "repeat": ""}.
-func okTaskResponse(w http.ResponseWriter, status int, response models.Task) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logrus.Warnf("ошибка сериализации JSON: %v", err)
-	}
-}
-
-// okTaskResponse возвращает пустой JSON {}.
-func okEmptyResponse(w http.ResponseWriter, status int, response struct{}) {
+// okResponse возвращает ответ в формате JSON.
+func okResponse(w http.ResponseWriter, status int, response any) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(status)
 
@@ -180,11 +159,8 @@ func (h *Handler) addTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := models.Response{
-		ID:    taskID,
-		Error: "",
-		Tasks: []models.Task{},
-	}
+	//nolint:exhaustivestruct
+	response := models.Response{ID: taskID}
 
 	okResponse(w, http.StatusCreated, response)
 }
@@ -198,11 +174,8 @@ func (h *Handler) getAllTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := models.Response{
-		ID:    "",
-		Error: "",
-		Tasks: tasks,
-	}
+	//nolint:exhaustivestruct
+	response := models.Response{Tasks: tasks}
 
 	okResponse(w, http.StatusOK, response)
 }
@@ -213,12 +186,21 @@ func (h *Handler) getTaskID(w http.ResponseWriter, r *http.Request) {
 
 	taskStruct, err := h.service.GetTaskID(r.Context(), id)
 	if err != nil {
-		errorResponse(w, "не удалось найти задачу по ее ID", err)
+		errorResponse(w, err.Error(), err)
 
 		return
 	}
 
-	okTaskResponse(w, http.StatusCreated, taskStruct)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	w.WriteHeader(http.StatusCreated)
+
+	err = json.NewEncoder(w).Encode(taskStruct)
+	if err != nil {
+		errorResponse(w, err.Error(), err)
+
+		return
+	}
 }
 
 // updateTaskId PUT-обработчик для редактирования задачи.
@@ -238,7 +220,7 @@ func (h *Handler) updateTaskID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	okTaskResponse(w, http.StatusOK, updateTask)
+	okResponse(w, http.StatusOK, updateTask)
 }
 
 // taskDone POST-обработчик для выполнения задачи.
@@ -253,7 +235,7 @@ func (h *Handler) taskDone(w http.ResponseWriter, r *http.Request) {
 
 	response := struct{}{}
 
-	okEmptyResponse(w, http.StatusOK, response)
+	okResponse(w, http.StatusOK, response)
 }
 
 // deleteTask DELETE-обработчик для удаления задачи.
@@ -268,5 +250,5 @@ func (h *Handler) deleteTask(w http.ResponseWriter, r *http.Request) {
 
 	response := struct{}{}
 
-	okEmptyResponse(w, http.StatusOK, response)
+	okResponse(w, http.StatusOK, response)
 }
