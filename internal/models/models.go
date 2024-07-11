@@ -15,9 +15,3 @@ type Response struct {
 	Error string `json:"error,omitempty"`
 	Tasks []Task `json:"tasks"`
 }
-
-const (
-	DateFormat = "20060102"
-	Limit      = 50
-	WebDir     = "./web"
-)

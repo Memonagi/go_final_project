@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Memonagi/go_final_project/internal/models"
 )
 
 var (
@@ -16,13 +14,21 @@ var (
 	errRule = errors.New("неверный формат правила")
 )
 
+const (
+	minDays    = 1
+	maxDays    = 400
+	minWDay    = 1
+	maxWDay    = 7
+	dateFormat = "20060102"
+)
+
 // NextDate функция для определения следующей даты в соответствии с правилом (решено без учета повторения по месяцам).
 func NextDate(now time.Time, dateString string, repeat string) (string, error) {
 	if repeat == "" {
 		return "", errRule
 	}
 
-	date, err := time.Parse(models.DateFormat, dateString)
+	date, err := time.Parse(dateFormat, dateString)
 	if err != nil {
 		return "", errDate
 	}
@@ -49,7 +55,7 @@ func dayRule(now time.Time, date time.Time, repeatSlice []string) (string, error
 	}
 
 	days, err := strconv.Atoi(repeatSlice[1])
-	if err != nil || days < 1 || days > 400 {
+	if err != nil || days < minDays || days > maxDays {
 		return "", errDays
 	}
 
@@ -60,7 +66,7 @@ func dayRule(now time.Time, date time.Time, repeatSlice []string) (string, error
 		}
 	}
 
-	return date.Format(models.DateFormat), nil
+	return date.Format(dateFormat), nil
 }
 
 // yearRule проверяет правило повторения лет.
@@ -76,7 +82,7 @@ func yearRule(now time.Time, date time.Time, repeatSlice []string) (string, erro
 		}
 	}
 
-	return date.Format(models.DateFormat), nil
+	return date.Format(dateFormat), nil
 }
 
 // weekRule проверяет правило повторения дней недели.
@@ -90,7 +96,7 @@ func weekRule(now time.Time, date time.Time, repeatSlice []string) (string, erro
 
 	for _, e := range wSlice {
 		wDay, err := strconv.Atoi(e)
-		if err != nil || wDay < 1 || wDay > 7 {
+		if err != nil || wDay < minWDay || wDay > maxWDay {
 			return "", fmt.Errorf("%w", errDays)
 		}
 
@@ -110,7 +116,7 @@ func weekRule(now time.Time, date time.Time, repeatSlice []string) (string, erro
 		return "", err
 	}
 
-	return date.Format(models.DateFormat), nil
+	return date.Format(dateFormat), nil
 }
 
 func weekDay(now time.Time, date time.Time, week []int) (time.Time, error) {

@@ -12,12 +12,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const limit = 50
+
 type DB struct {
 	db *sql.DB
 }
 
-// New подключает к БД.
-func New(ctx context.Context, dbFile string) (*DB, error) {
+// NewDB подключает к БД.
+func NewDB(ctx context.Context, dbFile string) (*DB, error) {
 	_, err := os.Stat(dbFile)
 
 	if os.IsNotExist(err) {
@@ -80,7 +82,7 @@ func (db *DB) AddTask(ctx context.Context, task models.Task) (string, error) {
 
 // GetAllTasks получает все задачи из БД.
 func (db *DB) GetAllTasks(ctx context.Context) ([]models.Task, error) {
-	rows, err := db.db.QueryContext(ctx, "SELECT * FROM scheduler ORDER BY date LIMIT ?", models.Limit)
+	rows, err := db.db.QueryContext(ctx, "SELECT * FROM scheduler ORDER BY date LIMIT ?", limit)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка поиска задач в БД: %w", err)
 	}

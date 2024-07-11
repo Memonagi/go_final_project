@@ -13,6 +13,8 @@ import (
 	"github.com/Memonagi/go_final_project/internal/models"
 )
 
+const dateFormat = "20060102"
+
 type Service struct {
 	db *database.DB
 }
@@ -106,19 +108,19 @@ func (s *Service) checkDate(task models.Task) (string, error) {
 	now := time.Now()
 
 	if task.Date == "" || task.Date == "today" {
-		return now.Format(models.DateFormat), nil
+		return now.Format(dateFormat), nil
 	}
 
-	outDate, err := time.Parse(models.DateFormat, task.Date)
+	outDate, err := time.Parse(dateFormat, task.Date)
 	if err != nil {
 		return "", fmt.Errorf("%w", errDate)
 	}
 
 	if outDate.Before(now) {
-		return now.Format(models.DateFormat), nil
+		return now.Format(dateFormat), nil
 	}
 
-	return outDate.Format(models.DateFormat), nil
+	return outDate.Format(dateFormat), nil
 }
 
 // AddTask добавляет новую задачу в БД.
@@ -167,7 +169,7 @@ func (s *Service) addTaskHelper(task models.Task, now time.Time) (string, error)
 		return "", err
 	}
 
-	if dateOfTask == now.Format(models.DateFormat) {
+	if dateOfTask == now.Format(dateFormat) {
 		task.Date = dateOfTask
 	} else {
 		nextDate, err := date.NextDate(now, dateOfTask, task.Repeat)
@@ -227,17 +229,17 @@ func (s *Service) UpdateTask(ctx context.Context, task models.Task) (models.Task
 	now := time.Now()
 
 	if task.Date == "" {
-		task.Date = now.Format(models.DateFormat)
+		task.Date = now.Format(dateFormat)
 	}
 
-	dateOfTask, err := time.Parse(models.DateFormat, task.Date)
+	dateOfTask, err := time.Parse(dateFormat, task.Date)
 	if err != nil {
 		return models.Task{}, fmt.Errorf("%w", errDate)
 	}
 
 	if dateOfTask.Before(now) {
 		if task.Repeat == "" {
-			task.Date = now.Format(models.DateFormat)
+			task.Date = now.Format(dateFormat)
 		}
 
 		nextDate, err := date.NextDate(now, task.Date, task.Repeat)

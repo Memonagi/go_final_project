@@ -21,12 +21,17 @@ type Handler struct {
 	port    int
 }
 
-const timeout = 5 * time.Second
+const (
+	readHeaderTime = 5 * time.Second
+	ctxTimeout     = 10 * time.Second
+	dateFormat     = "20060102"
+	webDir         = "./web"
+)
 
 // New создает маршрутизатор и обрабатывает запросы.
 func New(port int, service *service.Service) *Handler {
 	r := chi.NewRouter()
-	r.Handle("/*", http.FileServer(http.Dir(models.WebDir)))
+	r.Handle("/*", http.FileServer(http.Dir(webDir)))
 
 	h := Handler{
 		service: service,
@@ -34,7 +39,7 @@ func New(port int, service *service.Service) *Handler {
 		server: http.Server{
 			Addr:              fmt.Sprintf(":%d", port),
 			Handler:           r,
-			ReadHeaderTimeout: timeout,
+			ReadHeaderTimeout: readHeaderTime,
 		},
 		port: port,
 	}
@@ -66,11 +71,11 @@ func (h *Handler) Run(ctx context.Context) error {
 		<-ctx.Done()
 		logrus.Info("закрытие сервера")
 
-		ctxGf, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		gracefulCtx, cancel := context.WithTimeout(context.Background(), ctxTimeout)
 		defer cancel()
 
 		//nolint:contextcheck
-		if err := h.server.Shutdown(ctxGf); err != nil {
+		if err := h.server.Shutdown(gracefulCtx); err != nil {
 			logrus.Warnf("ошибка плавного закрытия сервера: %v", err)
 
 			return
@@ -100,7 +105,7 @@ func errorResponse(w http.ResponseWriter, errorText string, err error) {
 
 	_, err = w.Write(response)
 	if err != nil {
-		http.Error(w, fmt.Errorf("error: %w", err).Error(), http.StatusInternalServerError)
+		logrus.Warnf("error: %v", err)
 	}
 }
 
@@ -120,7 +125,7 @@ func (h *Handler) getNextDate(w http.ResponseWriter, r *http.Request) {
 	dateReq := r.FormValue("date")
 	repeatReq := r.FormValue("repeat")
 
-	now, err := time.Parse(models.DateFormat, nowReq)
+	now, err := time.Parse(dateFormat, nowReq)
 	if err != nil {
 		http.Error(w, "неправильный формат даты", http.StatusInternalServerError)
 

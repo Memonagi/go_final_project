@@ -1,3 +1,4 @@
 scheduler.db
 .idea
 bin
+.DS_Store

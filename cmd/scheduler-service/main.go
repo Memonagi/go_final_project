@@ -13,7 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const defaultPort = 7540
+const (
+	defaultPort   = 7540
+	defaultDBName = "scheduler.db"
+)
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
@@ -28,10 +31,10 @@ func main() {
 	dbFile := os.Getenv("TODO_DBFILE")
 
 	if dbFile == "" {
-		dbFile = "scheduler.db"
+		dbFile = defaultDBName
 	}
 
-	db, err := database.New(ctx, dbFile)
+	db, err := database.NewDB(ctx, dbFile)
 	if err != nil {
 		logrus.Panicf("ошибка подключения к БД: %v", err)
 	}
